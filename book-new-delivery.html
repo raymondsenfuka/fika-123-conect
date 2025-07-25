@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
     <style>
         /* General Layout */
         .initial-view {
@@ -219,7 +220,7 @@
             display: flex;
             justify-content: center;
             margin-bottom: 30px;
-            border-bottom: 2px solid #eee;
+            border-bottom: 22px solid #eee;
         }
 
         .tab-button {
@@ -278,6 +279,16 @@
         #bookingFormContainer {
             display: none; /* Hide this by default on load */
         }
+
+        /* Styling for the new map in booking form */
+        #map {
+            height: 300px; /* Adjust height as needed */
+            width: 100%;
+            margin-top: 20px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
     </style>
 </head>
 <body>
@@ -301,6 +312,8 @@
             <h3><i class="fas fa-map-marker-alt"></i> Your Current Location</h3>
             <div id="currentLocationMap"></div>
             <p id="locationStatus" class="small-text">Getting your location...</p>
+            <input type="hidden" id="currentLocationLat">
+            <input type="hidden" id="currentLocationLng">
             <div class="skip-button-container">
                 <button type="button" id="skipLocationBtn" class="secondary-btn"><i class="fas fa-arrow-right"></i> Skip Location Selection</button>
             </div>
@@ -317,7 +330,12 @@
                     <h3>Pickup Details</h3>
                     <div class="form-group">
                         <label for="pickupLocation">Pickup Location:</label>
-                        <input type="text" id="pickupLocation" placeholder="Enter pickup address" required>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="text" id="pickupLocation" placeholder="Enter pickup address" required style="flex-grow: 1;">
+                            <button type="button" id="useCurrentLocationBtn" class="secondary-btn" title="Use your detected location"><i class="fas fa-crosshairs"></i></button>
+                        </div>
+                        <input type="hidden" id="pickupLocationLat">
+                        <input type="hidden" id="pickupLocationLng">
                     </div>
                     <div class="form-group">
                         <label for="pickupContactName">Contact Name:</label>
@@ -332,6 +350,8 @@
                     <div class="form-group">
                         <label for="dropoffLocation">Drop-off Location:</label>
                         <input type="text" id="dropoffLocation" placeholder="Enter drop-off address" required>
+                        <input type="hidden" id="dropoffLocationLat">
+                        <input type="hidden" id="dropoffLocationLng">
                     </div>
                     <div class="form-group">
                         <label for="recipientName">Recipient Name:</label>
@@ -379,6 +399,8 @@
                     <div class="form-group">
                         <label for="cpPickupLocation">Pickup Collection Point:</label>
                         <input type="text" id="cpPickupLocation" placeholder="Enter collection point" required>
+                        <input type="hidden" id="cpPickupLocationLat">
+                        <input type="hidden" id="cpPickupLocationLng">
                     </div>
 
                     <h3>Recipient Details (Collection Point)</h3>
@@ -393,6 +415,8 @@
                     <div class="form-group">
                         <label for="cpDropoffLocation">Drop-off Collection Point:</label>
                         <input type="text" id="cpDropoffLocation" placeholder="Enter drop-off collection point" required>
+                        <input type="hidden" id="cpDropoffLocationLat">
+                        <input type="hidden" id="cpDropoffLocationLng">
                     </div>
 
                     <h3>Parcel Details (Collection Point)</h3>
@@ -418,6 +442,9 @@
                 </form>
             </div>
 
+            <div id="map"></div>
+            <p id="mapError" style="color: red; display: none; margin-top: 10px;">Map could not load or find location.</p>
+
             <div id="bookingMessage" class="booking-message" style="display: none;"></div>
 
             <div class="form-actions">
@@ -436,37 +463,42 @@
         </div>
     </footer>
 
-    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY_HERE&libraries=geometry,geocoding&callback=initMap" async defer></script>
-
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, doc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
-        
+<script type="module">
+    'use strict';
+
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+    import { getFirestore, collection, addDoc, doc, getDoc, getDocs, GeoPoint, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+    document.addEventListener('DOMContentLoaded', () => {
         // --- Firebase Configuration ---
-        // REPLACE WITH YOUR ACTUAL FIREBASE CONFIGURATION
         const firebaseConfig = {
             apiKey: "AIzaSyDq3uO76nnqqPgPaFfXpOTEnFSXRqXneWU", // Ensure this is your correct Firebase API key
-        authDomain: "fika-connect-5f844.firebaseapp.com",
-        projectId: "fika-connect-5f844",
-        storageBucket: "fika-connect-5f844.appspot.com",
-        messagingSenderId: "124223307329",
-        appId: "1:124223307329:web:76c547b91dcd25205550c0"
+            authDomain: "fika-connect-5f844.firebaseapp.com",
+            projectId: "fika-connect-5f844",
+            storageBucket: "fika-connect-5f844.appspot.com",
+            messagingSenderId: "124223307329",
+            appId: "1:124223307329:web:76c547b91dcd25205550c0"
         };
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // --- DOM Elements (Initial View) ---
+        // --- DOM Elements ---
         const initialView = document.getElementById('initialView');
-        const currentLocationMap = document.getElementById('currentLocationMap');
+        const currentLocationMap = document.getElementById('currentLocationMap'); // Leaflet map container for initial view
         const locationStatus = document.getElementById('locationStatus');
         const skipLocationBtn = document.getElementById('skipLocationBtn');
-        const bookingFormContainer = document.getElementById('bookingFormContainer'); // The container for the tabs and forms
+        const bookingFormContainer = document.getElementById('bookingFormContainer');
 
-        // --- DOM Elements (Direct Delivery) ---
+        // Hidden inputs for current location
+        const currentLocationLat = document.getElementById('currentLocationLat');
+        const currentLocationLng = document.getElementById('currentLocationLng');
+
+        // Direct Delivery Form Elements
         const directDeliveryForm = document.getElementById('directDeliveryForm');
         const pickupLocationInput = document.getElementById('pickupLocation');
         const dropoffLocationInput = document.getElementById('dropoffLocation');
@@ -477,20 +509,31 @@
         const parcelTypeInput = document.getElementById('parcelType');
         const parcelWeightInput = document.getElementById('parcelWeight');
         const isFragileCheckbox = document.getElementById('isFragile');
+        // Hidden inputs for Direct Delivery
+        const pickupLocationLat = document.getElementById('pickupLocationLat');
+        const pickupLocationLng = document.getElementById('pickupLocationLng');
+        const dropoffLocationLat = document.getElementById('dropoffLocationLat');
+        const dropoffLocationLng = document.getElementById('dropoffLocationLng');
 
-        // --- DOM Elements (Collection Point Delivery) ---
+        // Collection Point Delivery Form Elements
         const collectionPointDeliveryForm = document.getElementById('collectionPointDeliveryForm');
         const cpSenderNameInput = document.getElementById('cpSenderName');
         const cpSenderContactInput = document.getElementById('cpSenderContact');
-        const cpPickupLocationInput = document.getElementById('cpPickupLocation');
+        const cpPickupLocationInput = document.getElementById('cpPickupLocation'); // Currently text input, can be select
         const cpRecipientNameInput = document.getElementById('cpRecipientName');
         const cpRecipientContactInput = document.getElementById('cpRecipientContact');
-        const cpDropoffLocationInput = document.getElementById('cpDropoffLocation');
+        const cpDropoffLocationInput = document.getElementById('cpDropoffLocation'); // Currently text input
         const cpParcelTypeInput = document.getElementById('cpParcelType');
         const cpParcelWeightInput = document.getElementById('cpParcelWeight');
         const cpIsFragileCheckbox = document.getElementById('cpIsFragile');
+        const collectionPointSelect = document.getElementById('collectionPoint'); // If you change cpPickupLocationInput to a select
+        // Hidden inputs for Collection Point Delivery
+        const cpPickupLocationLat = document.getElementById('cpPickupLocationLat');
+        const cpPickupLocationLng = document.getElementById('cpPickupLocationLng');
+        const cpDropoffLocationLat = document.getElementById('cpDropoffLocationLat');
+        const cpDropoffLocationLng = document.getElementById('cpDropoffLocationLng');
 
-        // --- Common DOM Elements ---
+        // Common DOM Elements
         const logoutBtn = document.getElementById('logoutBtn');
         const calculatePriceBtn = document.getElementById('calculatePriceBtn');
         const fareAmountSpan = document.getElementById('fareAmount');
@@ -500,6 +543,12 @@
         const tabButtons = document.querySelectorAll('.tab-button');
         const tabContents = document.querySelectorAll('.tab-content');
 
+        // New elements for location input enhancement
+        const mapContainer = document.getElementById('map'); // Main map for direct delivery form
+        const mapError = document.getElementById('mapError');
+        const useCurrentLocationBtn = document.getElementById('useCurrentLocationBtn');
+
+
         // --- Global Variables ---
         let CURRENT_USER_ID = null;
         let CURRENT_USER_NAME = "Sender";
@@ -507,9 +556,11 @@
         let selectedDeliveryType = 'direct_delivery'; // Default delivery type
         let calculatedFare = 0;
         let calculatedDistanceKm = 0;
-        let distanceService; // Google Maps Distance Matrix Service
-        let geocoderService; // Google Maps Geocoder Service
-        let leafletMap = null; // For the initial Leaflet map
+
+        let initialLeafletMap = null; // For the initial current location display
+        let deliveryLeafletMap = null; // For the map within the booking form
+        let pickupMarker = null;
+        let dropoffMarker = null;
 
         // --- Event Listeners ---
         if (logoutBtn) {
@@ -519,13 +570,13 @@
             });
         }
 
-        // --- NEW: Skip Location Button Event Listener ---
+        // Skip Location Button Event Listener
         skipLocationBtn.addEventListener('click', handleSkipLocation);
 
-        // --- Calculate Price Button Event Listener ---
+        // Calculate Price Button Event Listener
         calculatePriceBtn.addEventListener('click', calculatePrice);
 
-        // --- Booking Button Event Listener ---
+        // Booking Button Event Listener
         bookNowBtn.addEventListener('click', async (event) => {
             event.preventDefault(); // Prevent default form submission
 
@@ -555,10 +606,9 @@
             try {
                 await bookDelivery();
                 showBookingMessage("Delivery booked successfully! Redirecting...", 'success');
-                // Store calculatedFare for the confirm-booking page
                 sessionStorage.setItem('fikaConnectBookingFare', calculatedFare.toString());
                 setTimeout(() => {
-                    window.location.href = 'confirm-booking.html'; // Or sender-dashboard.html
+                    window.location.href = 'sender-active-deliveries.html';
                 }, 2000);
             } catch (error) {
                 console.error("Error booking delivery:", error);
@@ -580,16 +630,76 @@
                     targetTab.classList.add('active');
                     selectedDeliveryType = button.dataset.tab === 'direct' ? 'direct_delivery' : 'collection_point_pickup';
                     resetFareAndBooking(); // Reset fare when changing tabs
+
+                    // Manage map visibility based on tab
+                    if (selectedDeliveryType === 'direct_delivery') {
+                        mapContainer.style.display = 'block';
+                        // Re-initialize map if switching back to direct and map not present
+                        if (!deliveryLeafletMap) {
+                             initDeliveryMap({ lat: 0.347596, lng: 32.582520 }); // Default to Kampala
+                        }
+                        // Fit bounds to markers if they exist
+                        if (pickupMarker && dropoffMarker) {
+                            const group = new L.featureGroup([pickupMarker, dropoffMarker]);
+                            deliveryLeafletMap.fitBounds(group.getBounds().pad(0.5));
+                        } else if (pickupMarker) {
+                            deliveryLeafletMap.setView(pickupMarker.getLatLng(), 13);
+                        } else if (dropoffMarker) {
+                            deliveryLeafletMap.setView(dropoffMarker.getLatLng(), 13);
+                        }
+                    } else {
+                        mapContainer.style.display = 'none';
+                        // Clean up delivery map if switching to collection point
+                        if (deliveryLeafletMap) {
+                            deliveryLeafletMap.remove();
+                            deliveryLeafletMap = null;
+                            pickupMarker = null;
+                            dropoffMarker = null;
+                        }
+                    }
                 }
             });
         });
+
+        // Use Current Location Button Event Listener
+        if (useCurrentLocationBtn) {
+            useCurrentLocationBtn.addEventListener('click', () => {
+                const lat = currentLocationLat.value;
+                const lng = currentLocationLng.value;
+                if (lat && lng) {
+                    const latLng = { lat: parseFloat(lat), lng: parseFloat(lng) };
+                    // Attempt to reverse geocode for a user-friendly address
+                    L.Control.Geocoder.nominatim().reverse(latLng, deliveryLeafletMap.options.crs.scale(deliveryLeafletMap.getZoom()), function(results) {
+                        let addressName = `${latLng.lat.toFixed(4)}, ${latLng.lng.toFixed(4)}`;
+                        if (results && results.length > 0) {
+                            addressName = results[0].name || results[0].address.road || results[0].address.country;
+                        }
+                        pickupLocationInput.value = addressName;
+                        pickupLocationLat.value = latLng.lat;
+                        pickupLocationLng.value = latLng.lng;
+
+                        // Update marker on the delivery map
+                        if (deliveryLeafletMap) {
+                            if (pickupMarker) deliveryLeafletMap.removeLayer(pickupMarker);
+                            pickupMarker = L.marker([latLng.lat, latLng.lng]).addTo(deliveryLeafletMap)
+                                .bindPopup(`Pickup: ${addressName}`).openPopup();
+                            deliveryLeafletMap.setView([latLng.lat, latLng.lng], 13);
+                        }
+                        showBookingMessage("Pickup location set to your current location.", 'info');
+                    });
+
+                } else {
+                    showBookingMessage("Your current location is not yet available. Please wait or enter manually.", 'error');
+                }
+            });
+        }
+
 
         // --- Authentication State Listener ---
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 CURRENT_USER_ID = user.uid;
                 console.log("Firebase: User is logged in, UID:", user.uid);
-                // Fetch user's name and contact for auto-filling sender details
                 try {
                     const userDocRef = doc(db, "users", user.uid);
                     const userDocSnap = await getDoc(userDocRef);
@@ -598,10 +708,8 @@
                         CURRENT_USER_NAME = userData.name || "Sender";
                         CURRENT_USER_CONTACT = userData.contact || "";
 
-                        // Auto-fill sender details if they exist and fields are empty
                         if (pickupContactNameInput.value === "") pickupContactNameInput.value = CURRENT_USER_NAME;
                         if (pickupContactPhoneInput.value === "") pickupContactPhoneInput.value = CURRENT_USER_CONTACT;
-                        
                         if (cpSenderNameInput.value === "") cpSenderNameInput.value = CURRENT_USER_NAME;
                         if (cpSenderContactInput.value === "") cpSenderContactInput.value = CURRENT_USER_CONTACT;
                     }
@@ -609,60 +717,60 @@
                 } catch (error) {
                     console.error("Firebase: Error fetching user details:", error);
                 }
-                // Initialize map after user is authenticated
-                getLocationAndInitMap();
+                initCurrentLocationMap(); // Initialize Leaflet map for initial location display
+                initDeliveryMap({ lat: 0.347596, lng: 32.582520 }); // Initialize the second map for booking form
+                fetchCollectionPoints(); // Fetch collection points for the dropdown (if applicable)
             } else {
                 console.log("Firebase: User not logged in, redirecting to login.html");
-                window.location.href = 'login.html'; // Redirect to login if not authenticated
+                window.location.href = 'login.html';
             }
         });
 
-        // --- Google Maps API Initialization (Global Callback) ---
-        // This function is called automatically by the Google Maps script once it's loaded.
-        window.initMap = function() {
-            console.log("Google Maps API: initMap callback fired. Initializing services...");
-            distanceService = new google.maps.DistanceMatrixService();
-            geocoderService = new google.maps.Geocoder(); // Initialize Geocoder Service
-            console.log("Google Maps API: DistanceMatrixService and Geocoder initialized.");
-
-            // Add input event listeners to trigger recalculation
-            parcelTypeInput.addEventListener('change', calculatePrice);
-            parcelWeightInput.addEventListener('input', calculatePrice);
-            isFragileCheckbox.addEventListener('change', calculatePrice);
-
-            cpParcelTypeInput.addEventListener('change', calculatePrice);
-            cpParcelWeightInput.addEventListener('input', calculatePrice);
-            cpIsFragileCheckbox.addEventListener('change', calculatePrice);
-        };
-
-        // --- Geocoding Helper Function ---
+        // --- Geocoding Helper Function (Uses Nominatim - OpenStreetMap) ---
         async function geocodeAddress(address) {
-            console.log("Geocoding: Attempting to geocode address:", address);
-            return new Promise((resolve, reject) => {
-                if (!geocoderService) {
-                    console.error("Geocoding: Geocoder service is not initialized.");
-                    reject(new Error("Geocoder service not initialized. Google Maps API might not be loaded or its initMap callback hasn't fired."));
-                    return;
+            console.log("Nominatim: Attempting to geocode address:", address);
+            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&countrycodes=ug&limit=1`;
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
-                geocoderService.geocode({ 'address': address, 'componentRestrictions': { 'country': 'UG' } }, (results, status) => {
-                    if (status === 'OK' && results[0]) {
-                        console.log("Geocoding: Successfully geocoded", address, "to", results[0].formatted_address);
-                        resolve({
-                            lat: results[0].geometry.location.lat(),
-                            lng: results[0].geometry.location.lng(),
-                            formatted_address: results[0].formatted_address
-                        });
-                    } else {
-                        console.error("Geocoding: Failed to geocode", address, "Status:", status);
-                        reject(new Error(`Geocoding failed for ${address}: ${status}`));
-                    }
-                });
-            });
+                const data = await response.json();
+                if (data && data.length > 0) {
+                    const result = data[0];
+                    console.log("Nominatim: Successfully geocoded", address, "to", result.display_name);
+                    return {
+                        lat: parseFloat(result.lat),
+                        lng: parseFloat(result.lon),
+                        formatted_address: result.display_name
+                    };
+                } else {
+                    console.warn("Nominatim: No results found for", address);
+                    throw new Error(`No geocoding results for ${address}.`);
+                }
+            } catch (error) {
+                console.error("Nominatim: Geocoding error for", address, error);
+                throw new Error(`Geocoding failed for ${address}: ${error.message}`);
+            }
         }
 
-        // --- Calculate Price Function (Modified for Geocoding) ---
+        // --- Haversine Formula for Distance Calculation ---
+        function getHaversineDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Radius of Earth in kilometers
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a =
+                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            const distance = R * c; // Distance in km
+            return distance;
+        }
+
+        // --- Calculate Price Function (Uses Nominatim Geocoding and Haversine Distance) ---
         async function calculatePrice() {
-            console.log("Calculate Price: Function called.");
+            console.log("Calculate Price: Function called (using Nominatim & Haversine).");
             resetFareAndBooking(); // Reset fare and disable button initially
 
             let originAddress, destinationAddress;
@@ -679,7 +787,6 @@
                 if (!originAddress || !destinationAddress || isNaN(parcelWeight) || parcelWeight <= 0 || !parcelType || !pickupContactNameInput.value || !pickupContactPhoneInput.value || !recipientNameInput.value || !recipientContactInput.value) {
                     currentFormIsValid = false;
                 }
-
             } else { // collection_point_pickup
                 originAddress = cpPickupLocationInput.value.trim();
                 destinationAddress = cpDropoffLocationInput.value.trim();
@@ -691,21 +798,11 @@
                     currentFormIsValid = false;
                 }
             }
-            
+
             if (!currentFormIsValid) {
                 fareAmountSpan.textContent = `UGX 0`;
                 showBookingMessage("Please fill in all required fields to calculate fare.", 'info');
                 console.log("Calculate Price: Form not fully valid for calculation.");
-                return;
-            }
-
-            // --- Check if Google Maps Services are ready ---
-            if (!geocoderService || !distanceService) {
-                const errorMessage = "Google Maps services are not yet initialized. Please check your API key and ensure all required APIs (Maps JavaScript API, Geocoding API, Distance Matrix API) are enabled in your Google Cloud Console.";
-                showBookingMessage(errorMessage, 'error');
-                fareAmountSpan.textContent = `UGX 0`;
-                bookNowBtn.disabled = true;
-                console.error("Calculate Price:", errorMessage);
                 return;
             }
 
@@ -716,72 +813,77 @@
             showBookingMessage("Calculating fare, please wait...", 'info');
 
             try {
-                // --- Geocode Addresses First ---
-                console.log("Calculate Price: Starting geocoding for origin and destination.");
+                // --- Geocode Addresses ---
+                console.log("Calculate Price: Starting geocoding for origin and destination via Nominatim.");
                 const originCoords = await geocodeAddress(originAddress);
                 const destinationCoords = await geocodeAddress(destinationAddress);
-                console.log("Calculate Price: Geocoding successful. Calculating distance.");
+                console.log("Calculate Price: Geocoding successful. Calculating distance via Haversine.");
 
-                // --- Get Distance using Google Maps Distance Matrix Service ---
-                const response = await new Promise((resolve, reject) => {
-                    distanceService.getDistanceMatrix(
-                        {
-                            origins: [{lat: originCoords.lat, lng: originCoords.lng}],
-                            destinations: [{lat: destinationCoords.lat, lng: destinationCoords.lng}],
-                            travelMode: google.maps.TravelMode.DRIVING,
-                            unitSystem: google.maps.UnitSystem.METRIC,
-                            avoidHighways: false,
-                            avoidTolls: false,
-                        },
-                        (res, status) => {
-                            if (status === 'OK') {
-                                resolve(res);
-                            } else {
-                                reject(new Error('Distance Matrix error: ' + status));
-                            }
-                        }
-                    );
-                });
-
-                const element = response.rows[0].elements[0];
-                if (element.status === 'OK') {
-                    calculatedDistanceKm = element.distance.value / 1000; // Distance in kilometers
-                    console.log(`Calculate Price: Distance: ${calculatedDistanceKm.toFixed(2)} km`);
-
-                    // --- Sample Fare Calculation Logic ---
-                    const BASE_FARE = 5000; // UGX
-                    const COST_PER_KM = 500; // UGX per kilometer
-                    const WEIGHT_SURCHARGE_PER_KG = 200; // UGX per kg
-                    const FRAGILE_SURCHARGE = 1000; // UGX for fragile items
-
-                    calculatedFare = BASE_FARE + (calculatedDistanceKm * COST_PER_KM);
-
-                    // Add weight surcharge
-                    calculatedFare += (parcelWeight * WEIGHT_SURCHARGE_PER_KG);
-
-                    // Add fragile surcharge
-                    if (isFragile) {
-                        calculatedFare += FRAGILE_SURCHARGE;
-                    }
-
-                    // Adjust for parcel type (optional, example)
-                    if (parcelType === 'Documents') {
-                        calculatedFare -= 500; // Small discount for documents
-                    } else if (parcelType === 'Electronics') {
-                        calculatedFare += 1500; // Higher cost for electronics
-                    }
-                    
-                    calculatedFare = Math.max(0, Math.round(calculatedFare / 100) * 100); // Round to nearest 100 UGX, no negative fare
-
-                    fareAmountSpan.textContent = `UGX ${calculatedFare.toLocaleString()}`;
-                    bookNowBtn.disabled = false; // Enable book button once fare is calculated
-                    showBookingMessage(`Fare: UGX ${calculatedFare.toLocaleString()} (Distance: ${calculatedDistanceKm.toFixed(1)} km)`, 'success');
-                    console.log("Calculate Price: Fare calculated successfully.");
-
+                // Store geocoded coordinates in hidden inputs
+                if (selectedDeliveryType === 'direct_delivery') {
+                    if (pickupLocationLat) pickupLocationLat.value = originCoords.lat;
+                    if (pickupLocationLng) pickupLocationLng.value = originCoords.lng;
+                    if (dropoffLocationLat) dropoffLocationLat.value = destinationCoords.lat;
+                    if (dropoffLocationLng) dropoffLocationLng.value = destinationCoords.lng;
                 } else {
-                    console.error("Calculate Price: Distance calculation failed:", element.status);
-                    throw new Error('Distance calculation failed: ' + element.status);
+                    if (cpPickupLocationLat) cpPickupLocationLat.value = originCoords.lat;
+                    if (cpPickupLocationLng) cpPickupLocationLng.value = originCoords.lng;
+                    if (cpDropoffLocationLat) cpDropoffLocationLat.value = destinationCoords.lat;
+                    if (cpDropoffLocationLng) cpDropoffLocationLng.value = destinationCoords.lng;
                 }
+
+
+                // --- Get Distance using Haversine Formula ---
+                calculatedDistanceKm = getHaversineDistance(
+                    originCoords.lat, originCoords.lng,
+                    destinationCoords.lat, destinationCoords.lng
+                );
+                console.log(`Calculate Price: Distance: ${calculatedDistanceKm.toFixed(2)} km (Haversine)`);
+
+                // --- Fare Calculation Logic ---
+                const BASE_FARE = 5000; // UGX
+                const COST_PER_KM = 500; // UGX per kilometer
+                const WEIGHT_SURCHARGE_PER_KG = 200; // UGX per kg
+                const FRAGILE_SURCHARGE = 1000; // UGX for fragile items
+
+                calculatedFare = BASE_FARE + (calculatedDistanceKm * COST_PER_KM);
+
+                // Add weight surcharge
+                calculatedFare += (parcelWeight * WEIGHT_SURCHARGE_PER_KG);
+
+                // Add fragile surcharge
+                if (isFragile) {
+                    calculatedFare += FRAGILE_SURCHARGE;
+                }
+
+                // Adjust for parcel type (optional, example)
+                if (parcelType === 'Documents') {
+                    calculatedFare -= 500; // Small discount for documents
+                } else if (parcelType === 'Electronics') {
+                    calculatedFare += 1500; // Higher cost for electronics
+                }
+
+                calculatedFare = Math.max(0, Math.round(calculatedFare / 100) * 100); // Round to nearest 100 UGX, no negative fare
+
+                fareAmountSpan.textContent = `UGX ${calculatedFare.toLocaleString()}`;
+                bookNowBtn.disabled = false; // Enable book button once fare is calculated
+                showBookingMessage(`Fare: UGX ${calculatedFare.toLocaleString()} (Distance: ${calculatedDistanceKm.toFixed(1)} km)`, 'success');
+                console.log("Calculate Price: Fare calculated successfully.");
+
+                // Update markers on the delivery map after calculation
+                if (deliveryLeafletMap) {
+                    if (pickupMarker) deliveryLeafletMap.removeLayer(pickupMarker);
+                    if (dropoffMarker) deliveryLeafletMap.removeLayer(dropoffMarker);
+
+                    pickupMarker = L.marker([originCoords.lat, originCoords.lng]).addTo(deliveryLeafletMap)
+                        .bindPopup(`Pickup: ${originCoords.formatted_address}`).openPopup();
+                    dropoffMarker = L.marker([destinationCoords.lat, destinationCoords.lng]).addTo(deliveryLeafletMap)
+                        .bindPopup(`Dropoff: ${destinationCoords.formatted_address}`).openPopup();
+
+                    const group = new L.featureGroup([pickupMarker, dropoffMarker]);
+                    deliveryLeafletMap.fitBounds(group.getBounds().pad(0.5));
+                }
+
             } catch (error) {
                 console.error("Calculate Price: Error in calculatePrice execution:", error);
                 fareAmountSpan.textContent = `UGX 0`;
@@ -819,27 +921,34 @@
             let bookingData = {};
             let customerId = CURRENT_USER_ID;
             let customerName, customerContact;
-            let pickupLocation, dropoffLocation;
+            let pickupLocation; // Object with name, lat, lng, geopoint
+            let dropoffLocation; // Object with name, lat, lng, geopoint
             let parcelDetails;
             let recipient;
 
-            // Re-geocode addresses to get the latest formatted address and coordinates
-            let originCoords, destinationCoords;
-
             try {
                 if (selectedDeliveryType === 'direct_delivery') {
-                    originCoords = await geocodeAddress(pickupLocationInput.value);
-                    destinationCoords = await geocodeAddress(dropoffLocationInput.value);
+                    // Ensure these are accessed AFTER they are populated by calculatePrice
+                    const pLat = parseFloat(pickupLocationLat.value);
+                    const pLng = parseFloat(pickupLocationLng.value);
+                    const dLat = parseFloat(dropoffLocationLat.value);
+                    const dLng = parseFloat(dropoffLocationLng.value);
+
+                    if (isNaN(pLat) || isNaN(pLng) || isNaN(dLat) || isNaN(dLng)) {
+                        throw new Error("Pickup or Dropoff coordinates are missing. Please re-calculate fare.");
+                    }
 
                     pickupLocation = {
-                        name: originCoords.formatted_address,
-                        lat: originCoords.lat,
-                        lng: originCoords.lng
+                        name: pickupLocationInput.value,
+                        lat: pLat,
+                        lng: pLng,
+                        geopoint: new GeoPoint(pLat, pLng)
                     };
                     dropoffLocation = {
-                        name: destinationCoords.formatted_address,
-                        lat: destinationCoords.lat,
-                        lng: destinationCoords.lng
+                        name: dropoffLocationInput.value,
+                        lat: dLat,
+                        lng: dLng,
+                        geopoint: new GeoPoint(dLat, dLng)
                     };
                     parcelDetails = {
                         type: parcelTypeInput.value,
@@ -853,20 +962,28 @@
                     customerName = pickupContactNameInput.value;
                     customerContact = pickupContactPhoneInput.value;
 
-
                 } else { // collection_point_pickup
-                    originCoords = await geocodeAddress(cpPickupLocationInput.value);
-                    destinationCoords = await geocodeAddress(cpDropoffLocationInput.value);
+                    // Ensure these are accessed AFTER they are populated by calculatePrice
+                    const cpPLat = parseFloat(cpPickupLocationLat.value);
+                    const cpPLng = parseFloat(cpPickupLocationLng.value);
+                    const cpDLat = parseFloat(cpDropoffLocationLat.value);
+                    const cpDLng = parseFloat(cpDropoffLocationLng.value);
+
+                     if (isNaN(cpPLat) || isNaN(cpPLng) || isNaN(cpDLat) || isNaN(cpDLng)) {
+                        throw new Error("Collection Point Pickup or Dropoff coordinates are missing. Please re-calculate fare.");
+                    }
 
                     pickupLocation = {
-                        name: originCoords.formatted_address,
-                        lat: originCoords.lat,
-                        lng: originCoords.lng
+                        name: cpPickupLocationInput.value,
+                        lat: cpPLat,
+                        lng: cpPLng,
+                        geopoint: new GeoPoint(cpPLat, cpPLng)
                     };
                     dropoffLocation = {
-                        name: destinationCoords.formatted_address,
-                        lat: destinationCoords.lat,
-                        lng: destinationCoords.lng
+                        name: cpDropoffLocationInput.value,
+                        lat: cpDLat,
+                        lng: cpDLng,
+                        geopoint: new GeoPoint(cpDLat, cpDLng)
                     };
                     parcelDetails = {
                         type: cpParcelTypeInput.value,
@@ -893,40 +1010,55 @@
                     fareAmount: calculatedFare,
                     distanceKm: calculatedDistanceKm,
                     status: "Pending Driver Assignment",
-                    paymentStatus: "Pending", // Payment is handled on confirm-booking.html
+                    paymentStatus: "Pending",
                     bookingDate: serverTimestamp()
                 };
 
-                // Store this data in sessionStorage for the confirm-booking.html page
                 sessionStorage.setItem('fikaConnectBookingData', JSON.stringify(bookingData));
                 console.log("Book Delivery: Booking data stored in sessionStorage:", bookingData);
                 await addDoc(collection(db, "bookings"), bookingData);
                 console.log("Book Delivery: Booking successfully added to Firestore.");
 
             } catch (error) {
-                console.error("Book Delivery: Error during booking process (geocoding or firestore addDoc):", error);
-                throw error; // Re-throw to be caught by the bookNowBtn event listener
+                console.error("Book Delivery: Error during booking process:", error);
+                throw error;
             }
         }
 
-        // --- NEW: Handle Skip Location Function ---
+        // --- Handle Skip Location Function ---
         function handleSkipLocation() {
             console.log("Skip Location: Button clicked. Hiding initial view, showing booking form.");
             initialView.style.display = 'none';
             bookingFormContainer.style.display = 'block';
+            // Ensure delivery map is initialized if user skips
+            if (selectedDeliveryType === 'direct_delivery' && !deliveryLeafletMap) {
+                initDeliveryMap({ lat: 0.347596, lng: 32.582520 }); // Default to Kampala if skipped
+            }
         }
 
         // --- Initial Map & Location (Leaflet) ---
-        function getLocationAndInitMap() {
-            console.log("Leaflet Map: getLocationAndInitMap called.");
-            if (navigator.geolocation) {
-                locationStatus.textContent = "Attempting to get your location...";
+        function initCurrentLocationMap() {
+            console.log("Leaflet Map: initCurrentLocationMap called.");
+            locationStatus.textContent = "Attempting to get your location...";
+            if ("geolocation" in navigator) {
                 navigator.geolocation.getCurrentPosition(
                     (position) => {
                         console.log("Leaflet Map: Geolocation successful.");
                         const latLng = { lat: position.coords.latitude, lng: position.coords.longitude };
-                        initLeafletMap(latLng);
+                        currentLocationLat.value = latLng.lat;
+                        currentLocationLng.value = latLng.lng;
                         locationStatus.textContent = "Your approximate location is displayed.";
+                        
+                        if (initialLeafletMap) initialLeafletMap.remove(); // Remove existing map if any
+                        currentLocationMap.style.height = '400px';
+                        initialLeafletMap = L.map('currentLocationMap').setView([latLng.lat, latLng.lng], 13);
+                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                        }).addTo(initialLeafletMap);
+
+                        L.marker([latLng.lat, latLng.lng]).addTo(initialLeafletMap)
+                            .bindPopup("Your approximate location").openPopup();
+                        console.log("Leaflet Map: Current Location Map initialized successfully.");
                     },
                     (error) => {
                         console.error("Leaflet Map: Geolocation error:", error);
@@ -939,36 +1071,128 @@
                             errorMessage = "Location request timed out. Defaulting to Kampala.";
                         }
                         locationStatus.textContent = errorMessage;
-                        initLeafletMap({ lat: 0.347596, lng: 32.582520 }); // Default to Kampala
+                        // Fallback to Kampala for initial map
+                        if (initialLeafletMap) initialLeafletMap.remove();
+                        currentLocationMap.style.height = '400px';
+                        initialLeafletMap = L.map('currentLocationMap').setView([0.347596, 32.582520], 13);
+                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                        }).addTo(initialLeafletMap);
+                        L.marker([0.347596, 32.582520]).addTo(initialLeafletMap)
+                            .bindPopup("Defaulting to Kampala").openPopup();
+                        console.log("Leaflet Map: Current Location Map initialized with default location.");
                     },
                     { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
                 );
             } else {
                 console.warn("Leaflet Map: Geolocation is not supported by this browser.");
                 locationStatus.textContent = "Geolocation is not supported by your browser. Defaulting to Kampala.";
-                initLeafletMap({ lat: 0.347596, lng: 32.582520 }); // Default to Kampala
+                // Fallback to Kampala for initial map
+                if (initialLeafletMap) initialLeafletMap.remove();
+                currentLocationMap.style.height = '400px';
+                initialLeafletMap = L.map('currentLocationMap').setView([0.347596, 32.582520], 13);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                }).addTo(initialLeafletMap);
+                L.marker([0.347596, 32.582520]).addTo(initialLeafletMap)
+                    .bindPopup("Defaulting to Kampala").openPopup();
+                console.log("Leaflet Map: Current Location Map initialized with default location.");
             }
         }
 
-        function initLeafletMap(latLng) {
-            console.log("Leaflet Map: Initializing Leaflet map at", latLng);
-            if (leafletMap) {
-                leafletMap.remove(); // Remove existing map if any
+        // --- Main Delivery Map (for booking form) ---
+        function initDeliveryMap(initialLatLng = { lat: 0.347596, lng: 32.582520 }) {
+            console.log("Leaflet Map: Initializing Delivery map at", initialLatLng);
+            if (deliveryLeafletMap) {
+                deliveryLeafletMap.remove(); // Remove existing map if any
             }
-            // Ensure the map container is visible and has dimensions before initializing
-            currentLocationMap.style.height = '400px'; // Set a height if it's dynamically changed
-            leafletMap = L.map('currentLocationMap').setView([latLng.lat, latLng.lng], 13);
+            mapContainer.style.height = '300px'; // Ensure height is set
+            deliveryLeafletMap = L.map('map').setView([initialLatLng.lat, initialLatLng.lng], 13);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            }).addTo(leafletMap);
+            }).addTo(deliveryLeafletMap);
 
-            L.marker([latLng.lat, latLng.lng]).addTo(leafletMap)
-                .bindPopup("Your approximate location").openPopup();
-            console.log("Leaflet Map: Map initialized successfully.");
+            // Add geocoder control to the delivery map
+            L.Control.geocoder({
+                collapsed: false,
+                placeholder: 'Search location...',
+                geocoder: L.Control.Geocoder.nominatim()
+            }).on('markgeocode', function(e) {
+                const latlng = e.geocode.center;
+                const name = e.geocode.name;
+
+                // For simplicity, when a location is searched,
+                // we'll update the pickup input and add a marker.
+                // User can then manually adjust dropoff or perform another search.
+                pickupLocationInput.value = name;
+                pickupLocationLat.value = latlng.lat;
+                pickupLocationLng.value = latlng.lng;
+
+                if (pickupMarker) deliveryLeafletMap.removeLayer(pickupMarker);
+                pickupMarker = L.marker(latlng).addTo(deliveryLeafletMap)
+                    .bindPopup(`Selected: ${name}`).openPopup();
+                deliveryLeafletMap.setView(latlng, 15); // Zoom to the marked location
+                showBookingMessage(`Pickup location updated to: ${name}`, 'info');
+
+            }).addTo(deliveryLeafletMap);
+
+            // Basic click-to-set for pickup/dropoff (can be enhanced with a toggle)
+            deliveryLeafletMap.on('click', function(e) {
+                const latlng = e.latlng;
+                L.Control.Geocoder.nominatim().reverse(latlng, deliveryLeafletMap.options.crs.scale(deliveryLeafletMap.getZoom()), function(results) {
+                    let addressName = `${latlng.lat.toFixed(4)}, ${latlng.lng.toFixed(4)}`;
+                    if (results && results.length > 0) {
+                        addressName = results[0].name || results[0].address.road || results[0].address.country;
+                    }
+
+                    // For now, always set pickup on click (could be improved with a selector)
+                    pickupLocationInput.value = addressName;
+                    pickupLocationLat.value = latlng.lat;
+                    pickupLocationLng.value = latlng.lng;
+
+                    if (pickupMarker) deliveryLeafletMap.removeLayer(pickupMarker);
+                    pickupMarker = L.marker(latlng).addTo(deliveryLeafletMap)
+                        .bindPopup(`Pickup: ${addressName}`).openPopup();
+                    showBookingMessage(`Pickup location set by map click: ${addressName}`, 'info');
+                });
+            });
+
+            console.log("Leaflet Map: Delivery Map initialized successfully.");
         }
 
-        // Call getLocationAndInitMap only after Firebase authentication state is determined
-        // (This is already handled by onAuthStateChanged)
-    </script>
+
+        // --- Fetch Collection Points (for the dropdown) ---
+        async function fetchCollectionPoints() {
+            try {
+                const collectionPointsRef = collection(db, "collectionPoints");
+                const querySnapshot = await getDocs(collectionPointsRef);
+
+                if (collectionPointSelect) { // Check if the select element exists
+                    collectionPointSelect.innerHTML = '<option value="">Select Collection Point</option>'; // Clear existing options
+                    if (querySnapshot.empty) {
+                        console.log("No collection points found.");
+                        // Optionally add a disabled option or message if no points
+                        collectionPointSelect.innerHTML += '<option value="" disabled>No collection points available</option>';
+                        return;
+                    }
+
+                    querySnapshot.forEach(doc => {
+                        const point = doc.data();
+                        const option = document.createElement('option');
+                        // Store ID or formatted address as value, and text as name
+                        option.value = point.address || point.name; // Use address for geocoding, or name if simpler
+                        option.textContent = point.name;
+                        collectionPointSelect.appendChild(option);
+                    });
+                }
+                console.log("Collection points fetched successfully.");
+            } catch (error) {
+                console.error("Error fetching collection points:", error);
+                mapError.textContent = `Error loading collection points: ${error.message}`;
+                mapError.style.display = 'block';
+            }
+        }
+    }); // End DOMContentLoaded
+</script>
 </body>
 </html>
