@@ -10,41 +10,861 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
     <style>
-        /* General Layout */
-        .initial-view {
-            text-align: center;
-            margin-top: 30px;
-            margin-bottom: 30px;
+    /* Enhanced Book New Delivery Styles */
+    :root {
+        --primary-color: #28a745;
+        --primary-dark: #1e7e34;
+        --secondary-color: #6c757d;
+        --accent-color: #20c997;
+        --danger-color: #dc3545;
+        --warning-color: #ffc107;
+        --info-color: #17a2b8;
+        --light-bg: #f8f9fa;
+        --dark-text: #212529;
+        --border-color: #dee2e6;
+        --white: #ffffff;
+        --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        --transition: all 0.3s ease;
+        --header-height: 70px;
+    }
+
+    body {
+        font-family: 'Poppins', sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: var(--light-bg);
+        color: var(--dark-text);
+        line-height: 1.6;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    body.dark-mode {
+        --light-bg: #121212;
+        --dark-text: #f8f9fa;
+        --border-color: #343a40;
+        --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        background-color: var(--light-bg);
+        color: var(--dark-text);
+    }
+
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 20px;
+    }
+
+    /* Header Enhancements */
+    .page-header {
+        background-color: var(--white);
+        box-shadow: var(--card-shadow);
+        padding: 15px 0;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        height: var(--header-height);
+        display: flex;
+        align-items: center;
+    }
+
+    body.dark-mode .page-header {
+        background-color: #1e1e1e;
+    }
+
+    .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+    }
+
+    .logo-container {
+        display: flex;
+        align-items: center;
+    }
+
+    .logo-container h1 {
+        margin: 0;
+        font-size: 1.6em;
+    }
+
+    .logo-container h1 a {
+        text-decoration: none;
+        color: var(--primary-color);
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+    }
+
+    .logo-container h1 a::before {
+        content: "🚚";
+        margin-right: 10px;
+        font-size: 1.5em;
+    }
+
+    .main-nav {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .nav-links {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .nav-links a {
+        text-decoration: none;
+        color: var(--dark-text);
+        padding: 10px 15px;
+        font-weight: 600;
+        transition: var(--transition);
+        border-radius: 30px;
+        font-size: 0.95em;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    body.dark-mode .nav-links a {
+        color: var(--white);
+    }
+
+    .nav-links a:hover {
+        color: var(--white);
+        background-color: var(--primary-color);
+    }
+
+    .logout-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 15px;
+        background-color: var(--danger-color);
+        color: var(--white);
+        border-radius: 30px;
+        text-decoration: none;
+        font-weight: 600;
+        transition: var(--transition);
+        border: none;
+        cursor: pointer;
+        font-size: 0.95em;
+    }
+
+    .logout-btn:hover {
+        background-color: #c82333;
+        transform: translateY(-2px);
+    }
+
+    .menu-toggle {
+        display: none;
+        background: transparent;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: var(--primary-color);
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: var(--transition);
+    }
+
+    .menu-toggle:hover {
+        background: rgba(40, 167, 69, 0.1);
+    }
+
+    /* Mobile Menu */
+    .mobile-menu {
+        position: fixed;
+        top: var(--header-height);
+        left: 0;
+        width: 100%;
+        background-color: var(--white);
+        box-shadow: 0 10px 10px rgba(0, 0, 0, 0.1);
+        z-index: 999;
+        padding: 20px;
+        transform: translateY(-100%);
+        transition: transform 0.3s ease;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    body.dark-mode .mobile-menu {
+        background-color: #1e1e1e;
+        border-bottom: 1px solid #343a40;
+    }
+
+    .mobile-menu.active {
+        transform: translateY(0);
+    }
+
+    .mobile-nav-links {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+
+    .mobile-nav-links a {
+        text-decoration: none;
+        color: var(--dark-text);
+        padding: 12px 15px;
+        font-weight: 600;
+        transition: var(--transition);
+        border-radius: 8px;
+        font-size: 1em;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    body.dark-mode .mobile-nav-links a {
+        color: var(--white);
+    }
+
+    .mobile-nav-links a:hover {
+        color: var(--white);
+        background-color: var(--primary-color);
+    }
+
+    .mobile-logout-btn {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 15px;
+        background-color: var(--danger-color);
+        color: var(--white);
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 600;
+        transition: var(--transition);
+        border: none;
+        cursor: pointer;
+        font-size: 1em;
+        justify-content: center;
+    }
+
+    .mobile-logout-btn:hover {
+        background-color: #c82333;
+    }
+
+    /* Main Content */
+    main {
+        flex-grow: 1;
+        padding: 30px 0;
+    }
+
+    /* Initial View */
+    .initial-view {
+        text-align: center;
+        margin: 30px auto;
+        max-width: 800px;
+        background-color: var(--white);
+        border-radius: 15px;
+        padding: 40px;
+        box-shadow: var(--card-shadow);
+        transition: var(--transition);
+    }
+
+    body.dark-mode .initial-view {
+        background-color: #1e1e1e;
+    }
+
+    .initial-view:hover {
+        transform: translateY(-5px);
+    }
+
+    .initial-view h2 {
+        color: var(--primary-color);
+        font-size: 2.2em;
+        margin-bottom: 15px;
+    }
+
+    .initial-view p {
+        color: var(--secondary-color);
+        font-size: 1.1em;
+        margin-bottom: 25px;
+    }
+
+    body.dark-mode .initial-view p {
+        color: #adb5bd;
+    }
+
+    .initial-view h3 {
+        color: var(--primary-color);
+        margin: 30px 0 20px;
+        font-size: 1.5em;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+    }
+
+    #currentLocationMap {
+        height: 400px;
+        width: 100%;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        margin: 20px 0;
+        background: #f8f9fa;
+    }
+
+    body.dark-mode #currentLocationMap {
+        border: 1px solid #495057;
+        background: #2d2d2d;
+    }
+
+    #locationStatus {
+        font-weight: 500;
+        color: var(--secondary-color);
+        padding: 12px 15px;
+        border-radius: 8px;
+        background: rgba(0, 0, 0, 0.03);
+        display: inline-block;
+        margin: 15px 0;
+    }
+
+    body.dark-mode #locationStatus {
+        background: rgba(255, 255, 255, 0.05);
+        color: #adb5bd;
+    }
+
+    .skip-button-container {
+        margin-top: 30px;
+    }
+
+    .secondary-btn {
+        padding: 12px 25px;
+        font-size: 1.1em;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: var(--transition);
+        border: none;
+        background-color: #f0f0f0;
+        color: #555;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    body.dark-mode .secondary-btn {
+        background-color: #343a40;
+        color: var(--white);
+    }
+
+    .secondary-btn:hover {
+        background-color: #e0e0e0;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    body.dark-mode .secondary-btn:hover {
+        background-color: #495057;
+    }
+
+    /* Form Section */
+    .form-section {
+        background-color: var(--white);
+        padding: 40px;
+        border-radius: 15px;
+        box-shadow: var(--card-shadow);
+        max-width: 900px;
+        margin: 40px auto;
+        transition: var(--transition);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    body.dark-mode .form-section {
+        background-color: #1e1e1e;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .form-section:hover {
+        transform: translateY(-5px);
+    }
+
+    /* Tab Navigation */
+    .tab-navigation {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 30px;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 10px;
+    }
+
+    body.dark-mode .tab-navigation {
+        border-bottom: 1px solid #495057;
+    }
+
+    .tab-button {
+        background-color: transparent;
+        padding: 15px 30px;
+        border: none;
+        cursor: pointer;
+        font-size: 1.1em;
+        font-weight: 600;
+        color: var(--secondary-color);
+        border-radius: 8px 8px 0 0;
+        margin: 0 5px;
+        transition: var(--transition);
+        position: relative;
+    }
+
+    body.dark-mode .tab-button {
+        color: #adb5bd;
+    }
+
+    .tab-button.active {
+        color: var(--primary-color);
+        background-color: rgba(40, 167, 69, 0.1);
+    }
+
+    .tab-button.active::after {
+        content: '';
+        position: absolute;
+        bottom: -11px;
+        left: 0;
+        width: 100%;
+        height: 3px;
+        background-color: var(--primary-color);
+        border-radius: 3px 3px 0 0;
+    }
+
+    .tab-button:hover:not(.active) {
+        background-color: rgba(0, 0, 0, 0.05);
+        color: var(--dark-text);
+    }
+
+    body.dark-mode .tab-button:hover:not(.active) {
+        background-color: rgba(255, 255, 255, 0.05);
+        color: var(--white);
+    }
+
+    .tab-content {
+        display: none;
+    }
+
+    .tab-content.active {
+        display: block;
+        animation: fadeIn 0.5s ease-out;
+    }
+
+    /* Form Groups */
+    .form-group {
+        margin-bottom: 25px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 10px;
+        font-weight: 600;
+        color: var(--dark-text);
+        font-size: 1em;
+    }
+
+    body.dark-mode .form-group label {
+        color: var(--white);
+    }
+
+    .form-group input[type="text"],
+    .form-group input[type="email"],
+    .form-group input[type="tel"],
+    .form-group input[type="number"],
+    .form-group select,
+    .form-group textarea {
+        width: 100%;
+        padding: 14px 18px;
+        border: 2px solid var(--border-color);
+        border-radius: 10px;
+        font-size: 1em;
+        box-sizing: border-box;
+        transition: var(--transition);
+        background-color: #f8f9fa;
+        color: var(--dark-text);
+    }
+
+    body.dark-mode .form-group input[type="text"],
+    body.dark-mode .form-group input[type="email"],
+    body.dark-mode .form-group input[type="tel"],
+    body.dark-mode .form-group input[type="number"],
+    body.dark-mode .form-group select,
+    body.dark-mode .form-group textarea {
+        background-color: #343a40;
+        color: var(--white);
+        border: 2px solid #495057;
+    }
+
+    .form-group input[type="text"]:focus,
+    .form-group input[type="email"]:focus,
+    .form-group input[type="tel"]:focus,
+    .form-group input[type="number"]:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+        border-color: var(--primary-color);
+        outline: none;
+        background-color: var(--white);
+        box-shadow: 0 0 0 4px rgba(40, 167, 69, 0.1);
+    }
+
+    body.dark-mode .form-group input[type="text"]:focus,
+    body.dark-mode .form-group input[type="email"]:focus,
+    body.dark-mode .form-group input[type="tel"]:focus,
+    body.dark-mode .form-group input[type="number"]:focus,
+    body.dark-mode .form-group select:focus,
+    body.dark-mode .form-group textarea:focus {
+        background-color: #2d2d2d;
+        box-shadow: 0 0 0 4px rgba(40, 167, 69, 0.2);
+    }
+
+    .form-group textarea {
+        resize: vertical;
+        min-height: 100px;
+    }
+
+    .location-input-group {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+    }
+
+    .location-input-group input {
+        flex-grow: 1;
+    }
+
+    .location-input-group button {
+        padding: 14px;
+        border-radius: 10px;
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+        cursor: pointer;
+        transition: var(--transition);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1em;
+    }
+
+    .location-input-group button:hover {
+        background-color: var(--primary-dark);
+        transform: translateY(-2px);
+    }
+
+    /* Checkbox Group */
+    .checkbox-group {
+        display: flex;
+        align-items: center;
+        margin-bottom: 25px;
+        padding: 15px;
+        border-radius: 10px;
+        background: rgba(0, 0, 0, 0.02);
+        transition: var(--transition);
+    }
+
+    body.dark-mode .checkbox-group {
+        background: rgba(255, 255, 255, 0.02);
+    }
+
+    .checkbox-group:hover {
+        background: rgba(0, 0, 0, 0.05);
+    }
+
+    body.dark-mode .checkbox-group:hover {
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    .checkbox-group input[type="checkbox"] {
+        margin-right: 12px;
+        width: 20px;
+        height: 20px;
+        accent-color: var(--primary-color);
+        cursor: pointer;
+    }
+
+    .checkbox-group label {
+        margin: 0;
+        font-weight: 500;
+        color: var(--dark-text);
+        cursor: pointer;
+    }
+
+    body.dark-mode .checkbox-group label {
+        color: var(--white);
+    }
+
+    /* Form Actions */
+    .form-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 40px;
+        padding-top: 30px;
+        border-top: 1px solid var(--border-color);
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+
+    body.dark-mode .form-actions {
+        border-top: 1px solid #495057;
+    }
+
+    .primary-btn {
+        padding: 14px 28px;
+        font-size: 1.1em;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: var(--transition);
+        border: none;
+        background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+        color: white;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+    }
+
+    .primary-btn:hover:not(:disabled) {
+        background: linear-gradient(90deg, var(--primary-dark), #1baa7f);
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+    }
+
+    .primary-btn:disabled {
+        background: linear-gradient(90deg, #a5d6b4, #9bd1c0);
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+
+    .fare-display {
+        font-size: 1.4em;
+        font-weight: 700;
+        color: var(--dark-text);
+        text-align: center;
+        flex-grow: 1;
+    }
+
+    body.dark-mode .fare-display {
+        color: var(--white);
+    }
+
+    .fare-display span {
+        font-size: 1.6em;
+        color: var(--primary-color);
+        margin-left: 10px;
+    }
+
+    /* Map Section */
+    #map {
+        height: 400px;
+        width: 100%;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        margin-top: 25px;
+        background: #f8f9fa;
+    }
+
+    body.dark-mode #map {
+        border: 1px solid #495057;
+        background: #2d2d2d;
+    }
+
+    #mapError {
+        color: var(--danger-color);
+        margin-top: 15px;
+        padding: 12px;
+        border-radius: 8px;
+        background: rgba(220, 53, 69, 0.1);
+        text-align: center;
+        font-weight: 500;
+        display: none;
+    }
+
+    body.dark-mode #mapError {
+        background: rgba(220, 53, 69, 0.2);
+    }
+
+    /* Booking Message */
+    .booking-message {
+        margin-top: 25px;
+        padding: 18px;
+        border-radius: 10px;
+        font-weight: 500;
+        text-align: center;
+        display: none;
+        animation: fadeIn 0.3s ease;
+    }
+
+    .booking-message.success {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .booking-message.error {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+
+    .booking-message.info {
+        background-color: #d1ecf1;
+        color: #0c5460;
+        border: 1px solid #bee5eb;
+    }
+
+    body.dark-mode .booking-message.success {
+        background-color: #155724;
+        color: #d4edda;
+        border: 1px solid #c3e6cb;
+    }
+
+    body.dark-mode .booking-message.error {
+        background-color: #721c24;
+        color: #f8d7da;
+        border: 1px solid #f5c6cb;
+    }
+
+    body.dark-mode .booking-message.info {
+        background-color: #0c5460;
+        color: #d1ecf1;
+        border: 1px solid #bee5eb;
+    }
+
+    /* Distance Display */
+    .distance-display {
+        font-size: 1.1em;
+        color: var(--secondary-color);
+        margin-top: 15px;
+        text-align: center;
+        font-weight: 600;
+        padding: 12px;
+        border-radius: 8px;
+        background: rgba(0, 0, 0, 0.03);
+    }
+
+    body.dark-mode .distance-display {
+        background: rgba(255, 255, 255, 0.05);
+        color: #adb5bd;
+    }
+
+    .distance-display.error {
+        color: var(--danger-color);
+        background: rgba(220, 53, 69, 0.1);
+    }
+
+    body.dark-mode .distance-display.error {
+        background: rgba(220, 53, 69, 0.2);
+    }
+
+    /* Page Footer */
+    .page-footer {
+        background-color: var(--dark-text);
+        color: #fff;
+        text-align: center;
+        padding: 25px 0;
+        font-size: 0.95em;
+        margin-top: auto;
+    }
+
+    /* Responsive Improvements */
+    @media (max-width: 991px) {
+        .menu-toggle {
+            display: flex;
         }
 
-        #currentLocationMap {
-            height: 400px;
-            width: 100%;
-            max-width: 800px;
-            margin: 20px auto;
-            border-radius: 8px;
-            border: 1px solid #ddd;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        .nav-links,
+        .logout-btn {
+            display: none;
         }
 
         .form-section {
-            background-color: #fff;
-            padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-            max-width: 800px;
-            margin: 40px auto;
+            padding: 30px;
         }
 
-        .form-group {
+        .tab-navigation {
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .tab-button {
+            width: 100%;
+            text-align: center;
+            margin: 5px 0;
+            border-radius: 8px;
+        }
+
+        .tab-button.active::after {
+            display: none;
+        }
+
+        .location-input-group {
+            flex-direction: column;
+        }
+
+        .location-input-group button {
+            width: 100%;
+        }
+
+        .form-actions {
+            flex-direction: column;
+        }
+
+        .fare-display {
+            order: -1;
+            width: 100%;
             margin-bottom: 20px;
         }
 
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: #333;
+        .primary-btn,
+        .secondary-btn {
+            width: 100%;
+            justify-content: center;
+        }
+
+        #currentLocationMap,
+        #map {
+            height: 350px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .container {
+            padding: 0 15px;
+        }
+
+        main {
+            padding: 20px 0;
+        }
+
+        .initial-view {
+            padding: 30px 20px;
+        }
+
+        .initial-view h2 {
+            font-size: 1.8em;
+        }
+
+        .initial-view p {
+            font-size: 1em;
+        }
+
+        #currentLocationMap,
+        #map {
+            height: 300px;
+        }
+
+        .form-section {
+            padding: 25px 20px;
         }
 
         .form-group input[type="text"],
@@ -53,243 +873,158 @@
         .form-group input[type="number"],
         .form-group select,
         .form-group textarea {
-            width: calc(100% - 20px);
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 1em;
-            box-sizing: border-box;
-            transition: border-color 0.3s ease;
-        }
-
-        .form-group input[type="text"]:focus,
-        .form-group input[type="email"]:focus,
-        .form-group input[type="tel"]:focus,
-        .form-group input[type="number"]:focus,
-        .form-group select:focus,
-        .form-group textarea:focus {
-            border-color: var(--primary-color);
-            outline: none;
-        }
-
-        .form-group textarea {
-            resize: vertical;
-            min-height: 80px;
+            padding: 12px 15px;
         }
 
         .checkbox-group {
-            display: flex;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .checkbox-group input[type="checkbox"] {
-            margin-right: 10px;
-            width: 18px;
-            height: 18px;
+            padding: 12px;
         }
 
         .form-actions {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
             margin-top: 30px;
-        }
-
-        .form-actions .primary-btn,
-        .form-actions .secondary-btn {
-            padding: 12px 25px;
-            font-size: 1.1em;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s ease, transform 0.2s ease;
-            border: none;
-        }
-
-        .form-actions .primary-btn {
-            background-color: var(--primary-color);
-            color: #fff;
-        }
-
-        .form-actions .primary-btn:hover {
-            background-color: var(--dark-text);
-            transform: translateY(-2px);
-        }
-
-        .form-actions .secondary-btn {
-            background-color: #f0f0f0;
-            color: #555;
-            border: 1px solid #ccc;
-        }
-
-        .form-actions .secondary-btn:hover {
-            background-color: #e0e0e0;
-            transform: translateY(-2px);
+            padding-top: 25px;
         }
 
         .fare-display {
-            font-size: 1.4em;
-            font-weight: 700;
-            color: var(--primary-color);
-            text-align: right;
+            font-size: 1.2em;
         }
 
         .fare-display span {
+            font-size: 1.4em;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .page-header {
+            padding: 10px 0;
+        }
+
+        .logo-container h1 {
+            font-size: 1.4em;
+        }
+
+        .logo-container h1 a::before {
+            font-size: 1.2em;
+        }
+
+        .initial-view {
+            padding: 25px 15px;
+        }
+
+        .initial-view h2 {
             font-size: 1.6em;
-            color: var(--accent-color);
-            margin-left: 10px;
         }
 
-        .payment-options {
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px dashed #eee;
+        .initial-view h3 {
+            font-size: 1.3em;
         }
 
-        .payment-options h4 {
-            font-size: 1.5em;
-            color: var(--primary-color);
-            margin-bottom: 15px;
-            text-align: center;
+        #currentLocationMap,
+        #map {
+            height: 250px;
         }
 
-        .payment-methods {
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            flex-wrap: wrap;
-        }
-
-        .payment-method-card {
-            background-color: #f8f8f8;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 20px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            width: 180px;
-        }
-
-        .payment-method-card:hover,
-        .payment-method-card.selected {
-            border-color: var(--accent-color);
-            box-shadow: 0 0 15px rgba(var(--accent-rgb), 0.2);
-            background-color: #e6f7ff;
-        }
-
-        .payment-method-card i {
-            font-size: 3em;
-            color: var(--primary-color);
-            margin-bottom: 10px;
-        }
-
-        .payment-method-card p {
-            font-weight: 600;
-            color: #333;
-        }
-
-        .booking-message {
-            margin-top: 20px;
-            padding: 15px;
-            border-radius: 5px;
-            font-weight: 600;
-            text-align: center;
-            display: none; /* Hidden by default */
-        }
-
-        .booking-message.success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .booking-message.error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        .booking-message.info {
-            background-color: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
-        }
-
-        .tab-navigation {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 30px;
-            border-bottom: 22px solid #eee;
+        .form-section {
+            padding: 20px 15px;
         }
 
         .tab-button {
-            background-color: #f5f5f5;
-            padding: 15px 25px;
-            border: none;
-            cursor: pointer;
+            padding: 12px 15px;
+            font-size: 1em;
+        }
+
+        .form-group label {
+            font-size: 0.95em;
+        }
+
+        .primary-btn,
+        .secondary-btn {
+            padding: 12px 20px;
+            font-size: 1em;
+        }
+
+        .fare-display {
             font-size: 1.1em;
-            font-weight: 600;
-            color: #555;
-            border-radius: 8px 8px 0 0;
-            margin: 0 5px;
-            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
-        .tab-button.active {
-            background-color: var(--primary-color);
-            color: #fff;
-            border-bottom: 2px solid var(--primary-color);
-            transform: translateY(2px);
+        .fare-display span {
+            font-size: 1.3em;
         }
+    }
 
-        .tab-button:hover:not(.active) {
-            background-color: #e0e0e0;
-        }
+    /* Animations */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
 
-        .tab-content {
-            display: none; /* Hidden by default */
-        }
+    .initial-view,
+    .form-section {
+        animation: fadeIn 0.6s ease-out;
+    }
 
-        .tab-content.active {
-            display: block;
-        }
+    .form-group {
+        animation: fadeIn 0.4s ease-out;
+    }
 
-        .distance-display {
-            font-size: 1.1em;
-            color: #555;
-            margin-top: 10px;
-            text-align: center;
-            font-weight: 600;
-        }
-        .distance-display.error {
-            color: #dc3545;
-        }
+    .form-group:nth-child(2) { animation-delay: 0.1s; }
+    .form-group:nth-child(3) { animation-delay: 0.2s; }
+    .form-group:nth-child(4) { animation-delay: 0.3s; }
+    .form-group:nth-child(5) { animation-delay: 0.4s; }
+</style>
 
-        /* NEW: Skip button styling */
-        .skip-button-container {
-            margin-top: 30px;
-            text-align: center;
+<script>
+    // Enhanced mobile menu and dark mode functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        const menuToggle = document.querySelector('.menu-toggle');
+        const mobileMenu = document.querySelector('.mobile-menu');
+        const body = document.body;
+        
+        // Mobile menu toggle
+        if (menuToggle && mobileMenu) {
+            menuToggle.addEventListener('click', function() {
+                mobileMenu.classList.toggle('active');
+            });
         }
-
-        /* Ensure initial view and booking form display correctly */
-        #initialView {
-            display: block; /* Show this by default on load */
+        
+        // Close mobile menu when clicking outside
+        document.addEventListener('click', function(event) {
+            if (mobileMenu && mobileMenu.classList.contains('active')) {
+                const isClickInsideMenu = mobileMenu.contains(event.target);
+                const isClickOnToggle = menuToggle.contains(event.target);
+                
+                if (!isClickInsideMenu && !isClickOnToggle) {
+                    mobileMenu.classList.remove('active');
+                }
+            }
+        });
+        
+        // Dark mode toggle
+        function toggleDarkMode() {
+            body.classList.toggle('dark-mode');
+            const isDarkMode = body.classList.contains('dark-mode');
+            localStorage.setItem('darkMode', isDarkMode);
         }
-        #bookingFormContainer {
-            display: none; /* Hide this by default on load */
+        
+        // Apply saved dark mode preference
+        if (localStorage.getItem('darkMode') === 'true') {
+            body.classList.add('dark-mode');
         }
-
-        /* Styling for the new map in booking form */
-        #map {
-            height: 300px; /* Adjust height as needed */
-            width: 100%;
-            margin-top: 20px;
-            border-radius: 8px;
-            border: 1px solid #ddd;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        
+        // Add dark mode toggle to mobile menu
+        const mobileThemeToggle = document.createElement('div');
+        mobileThemeToggle.className = 'mobile-theme-toggle';
+        mobileThemeToggle.innerHTML = `
+            <i class="fas fa-moon"></i>
+            <span>Toggle Dark Mode</span>
+        `;
+        mobileThemeToggle.addEventListener('click', toggleDarkMode);
+        
+        if (mobileMenu) {
+            mobileMenu.appendChild(mobileThemeToggle);
         }
-    </style>
+    });
+</script>
 </head>
 <body>
 
@@ -396,12 +1131,23 @@
                         <label for="cpSenderContact">Your Phone:</label>
                         <input type="tel" id="cpSenderContact" placeholder="+256XXXXXXXXX" required>
                     </div>
-                    <div class="form-group">
-                        <label for="cpPickupLocation">Pickup Collection Point:</label>
-                        <input type="text" id="cpPickupLocation" placeholder="Enter collection point" required>
-                        <input type="hidden" id="cpPickupLocationLat">
-                        <input type="hidden" id="cpPickupLocationLng">
-                    </div>
+
+      <div class="form-group">
+    <label for="cpPickupLocationSelect">Pickup Collection Point:</label>
+    <select id="cpPickupLocationSelect" required>
+        <option value="">Select Pickup Collection Point</option>
+    </select>
+    <input type="hidden" id="cpPickupLocationLat">
+    <input type="hidden" id="cpPickupLocationLng">
+</div>
+<div class="form-group">
+    <label for="cpDropoffLocationSelect">Drop-off Collection Point:</label>
+    <select id="cpDropoffLocationSelect" required>
+        <option value="">Select Drop-off Collection Point</option>
+    </select>
+    <input type="hidden" id="cpDropoffLocationLat">
+    <input type="hidden" id="cpDropoffLocationLng">
+</div>
 
                     <h3>Recipient Details (Collection Point)</h3>
                     <div class="form-group">
@@ -412,12 +1158,7 @@
                         <label for="cpRecipientContact">Recipient Phone:</label>
                         <input type="tel" id="cpRecipientContact" placeholder="+256XXXXXXXXX" required>
                     </div>
-                    <div class="form-group">
-                        <label for="cpDropoffLocation">Drop-off Collection Point:</label>
-                        <input type="text" id="cpDropoffLocation" placeholder="Enter drop-off collection point" required>
-                        <input type="hidden" id="cpDropoffLocationLat">
-                        <input type="hidden" id="cpDropoffLocationLng">
-                    </div>
+                  
 
                     <h3>Parcel Details (Collection Point)</h3>
                     <div class="form-group">
@@ -526,13 +1267,76 @@
         const cpParcelTypeInput = document.getElementById('cpParcelType');
         const cpParcelWeightInput = document.getElementById('cpParcelWeight');
         const cpIsFragileCheckbox = document.getElementById('cpIsFragile');
-        const collectionPointSelect = document.getElementById('collectionPoint'); // If you change cpPickupLocationInput to a select
+    
         // Hidden inputs for Collection Point Delivery
         const cpPickupLocationLat = document.getElementById('cpPickupLocationLat');
         const cpPickupLocationLng = document.getElementById('cpPickupLocationLng');
         const cpDropoffLocationLat = document.getElementById('cpDropoffLocationLat');
         const cpDropoffLocationLng = document.getElementById('cpDropoffLocationLng');
+// --- Collection Point DOM Elements ---
+            const cpPickupLocationSelect = document.getElementById('cpPickupLocationSelect');
+            const cpDropoffLocationSelect = document.getElementById('cpDropoffLocationSelect');
 
+            let allCollectionPoints = []; // Store fetched points globally for easy lookup
+
+            // --- Function to Fetch and Populate Collection Points ---
+            async function fetchCollectionPoints() {
+                try {
+                    const querySnapshot = await getDocs(collection(db, "collectionPoints"));
+                    allCollectionPoints = []; // Clear previous data
+                    querySnapshot.forEach(doc => {
+                        allCollectionPoints.push({ id: doc.id, ...doc.data() });
+                    });
+
+                    // Clear and populate both select elements
+                    populateCollectionSelect(cpPickupLocationSelect, "Select Pickup Collection Point");
+                    populateCollectionSelect(cpDropoffLocationSelect, "Select Drop-off Collection Point");
+
+                    console.log("Collection points fetched and populated successfully.");
+                } catch (error) {
+                    console.error("Error fetching collection points:", error);
+                    mapError.textContent = `Error loading collection points: ${error.message}`;
+                    mapError.style.display = 'block';
+                }
+            }
+
+            function populateCollectionSelect(selectElement, defaultOptionText) {
+                selectElement.innerHTML = `<option value="">${defaultOptionText}</option>`; // Clear existing options
+                if (allCollectionPoints.length === 0) {
+                    selectElement.innerHTML += '<option value="" disabled>No collection points available</option>';
+                    return;
+                }
+                allCollectionPoints.forEach(point => {
+                    const option = document.createElement('option');
+                    option.value = point.id; // Use ID as value for easier lookup
+                    option.textContent = point.name;
+                    // Store lat/lng as data attributes
+                    if (point.geopoint && typeof point.geopoint.latitude === 'number' && typeof point.geopoint.longitude === 'number') {
+                        option.dataset.lat = point.geopoint.latitude;
+                        option.dataset.lng = point.geopoint.longitude;
+                    }
+                    selectElement.appendChild(option);
+                });
+            }
+
+            // --- Event Listeners for Collection Point Selects ---
+            cpPickupLocationSelect.addEventListener('change', () => {
+                const selectedOption = cpPickupLocationSelect.options[cpPickupLocationSelect.selectedIndex];
+                document.getElementById('cpPickupLocationLat').value = selectedOption.dataset.lat || '';
+                document.getElementById('cpPickupLocationLng').value = selectedOption.dataset.lng || '';
+            });
+
+            cpDropoffLocationSelect.addEventListener('change', () => {
+                const selectedOption = cpDropoffLocationSelect.options[cpDropoffLocationSelect.selectedIndex];
+                document.getElementById('cpDropoffLocationLat').value = selectedOption.dataset.lat || '';
+                document.getElementById('cpDropoffLocationLng').value = selectedOption.dataset.lng || '';
+            });
+
+            // Call fetchCollectionPoints when the tab is active or on page load
+            // Ensure this is called after Firebase is initialized
+            fetchCollectionPoints();
+
+            
         // Common DOM Elements
         const logoutBtn = document.getElementById('logoutBtn');
         const calculatePriceBtn = document.getElementById('calculatePriceBtn');
