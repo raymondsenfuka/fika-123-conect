@@ -8,444 +8,415 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
     </head>
-    <style>
-        /* --- General Page & Container Setup (ensure these are present and perhaps tweaked) --- */
-:root {
-    --primary-color: #28a745;; /* Example blue, ensure it matches your brand */
-    --secondary-color: #6c757d; /* Example gray */
-    --accent-color: #28a745; /* Example green for success */
-    --danger-color: #dc3545; /* Example red for errors */
-    --light-bg: #f8f9fa;
-    --dark-text: #343a40;
-    --border-color: #dee2e6;
-    --header-height: 80px; /* Adjust as needed */
-}
-
-body {
-    font-family: 'Poppins', sans-serif;
-    margin: 0;
-    padding: 0;
-    background-color: var(--light-bg);
-    color: var(--dark-text);
-    line-height: 1.6;
-}
-
-.container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 20px;
-}
-
-/* --- Header Styles (ensure these are present) --- */
-.page-header {
-    background-color: #fff;
-    border-bottom: 1px solid var(--border-color);
-    padding: 15px 0;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-}
-
-.page-header .container {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap; /* Allow wrapping on smaller screens */
-}
-
-.page-header h1 {
-    margin: 0;
-    font-size: 1.8em;
-}
-
-.page-header h1 a {
-    text-decoration: none;
-    color: var(--primary-color);
-    font-weight: 700;
-}
-
-.page-header nav {
-    margin-top: 5px; /* Adjust for wrap */
-}
-
-.page-header nav a {
-    text-decoration: none;
-    color: var(--dark-text);
-    padding: 8px 15px;
-    margin-left: 10px;
-    font-weight: 600;
-    transition: color 0.3s ease, background-color 0.3s ease;
-    border-radius: 5px;
-}
-
-.page-header nav a:hover {
-    color: #fff;
-    background-color: var(--primary-color);
-}
-
-/* --- Authentication Page Specific Styles (Add/Modify these) --- */
-.auth-page {
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-    background-color: var(--light-bg); /* Ensure consistent background */
-}
-
-.auth-container {
-    flex-grow: 1; /* Makes the main content take up available space */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 40px 20px; /* More padding for smaller screens */
-}
-
-.auth-box {
-    background-color: #ffffff;
-    padding: 40px;
-    border-radius: 10px;
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
-    width: 100%; /* Take full width on small screens */
-    max-width: 450px; /* Max width for larger screens */
-    text-align: center;
-    box-sizing: border-box; /* Include padding in width */
-}
-
-.auth-box h2 {
-    color: var(--primary-color);
-    margin-bottom: 25px;
-    font-size: 2.2em;
-    font-weight: 700;
-}
-
-.auth-box .fas {
-    margin-right: 8px;
-    color: var(--secondary-color);
-}
-
-.auth-tagline {
-    color: #666;
-    margin-bottom: 30px;
-    font-size: 1.1em;
-}
-
-/* Input Group Styling */
-.input-group {
-    margin-bottom: 25px;
-    text-align: left;
-    position: relative; /* For password toggle button */
-}
-
-.input-group label {
-    display: block;
-    margin-bottom: 10px;
-    font-weight: 600;
-    color: var(--dark-text);
-    font-size: 1em;
-}
-
-.input-group input {
-    width: 100%;
-    padding: 14px 18px; /* Increased padding */
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    font-size: 1em;
-    box-sizing: border-box; /* Crucial for full width */
-    transition: border-color 0.3s ease, box-shadow 0.3s ease;
-}
-
-.input-group input:focus {
-    border-color: var(--primary-color);
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25); /* Focus ring */
-}
-
-/* Password Toggle Specific Styles */
-.password-group {
-    position: relative;
-}
-
-.password-toggle-btn {
-    position: absolute;
-    right: 15px;
-    top: 60%; /* Adjust vertically */
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 1.1em;
-    color: var(--secondary-color);
-    transition: color 0.2s ease;
-    padding: 5px; /* Make clickable area larger */
-}
-
-.password-toggle-btn:hover {
-    color: var(--primary-color);
-}
-
-/* Auth Buttons */
-.auth-btn {
-    width: 100%;
-    padding: 15px;
-    font-size: 1.15em;
-    font-weight: 600;
-    border-radius: 8px;
-    margin-top: 15px;
-}
-
-/* Auth Message Styles (Refined) */
-.auth-message {
-    margin-top: 20px;
-    padding: 12px;
-    border-radius: 8px;
-    font-size: 0.95em;
-    text-align: center;
-    display: block; /* Show messages by default, hide with JS if empty */
-    line-height: 1.4;
-    transition: all 0.3s ease-in-out;
-}
-.auth-message:empty { /* Hides the div if it has no content */
-    display: none;
-}
-.auth-message.error-message {
-    background-color: var(--danger-color-light, #f8d7da); /* Use a light version of danger */
-    color: var(--danger-color, #721c24);
-    border: 1px solid var(--danger-color-border, #f5c6cb);
-}
-.auth-message.success-message {
-    background-color: var(--accent-color-light, #d4edda);
-    color: var(--accent-color-dark, #155724);
-    border: 1px solid var(--accent-color-border, #c3e6cb);
-}
-.auth-message.info-message {
-    background-color: var(--primary-color-light, #d1ecf1);
-    color: var(--primary-color-dark, #0c5460);
-    border: 1px solid var(--primary-color-border, #bee5eb);
-}
-/* Add light/dark shades for colors if not in :root */
-:root {
-    --danger-color-light: #f8d7da;
-    --danger-color-border: #f5c6cb;
-    --accent-color-light: #d4edda;
-    --accent-color-dark: #155724;
-    --accent-color-border: #c3e6cb;
-    --primary-color-light: #d1ecf1;
-    --primary-color-dark: #0c5460;
-    --primary-color-border: #bee5eb;
-}
-
-
-/* Auth Footer Text */
-.auth-footer-text {
-    margin-top: 25px;
-    font-size: 0.95em;
-    color: #555;
-}
-
-.auth-footer-text a {
-    color: var(--primary-color);
-    text-decoration: none;
-    font-weight: 600;
-    transition: color 0.3s ease;
-}
-
-.auth-footer-text a:hover {
-    text-decoration: underline;
-    color:#155724; /* Darker primary on hover */
-}
-
-/* --- Page Footer (ensure these are present and consistent) --- */
-.page-footer {
-    background-color: var(--dark-text);
-    color: #fff;
-    text-align: center;
-    padding: 20px 0;
-    font-size: 0.9em;
-    margin-top: auto; /* Pushes footer to the bottom */
-}
-
-/* --- Responsive Adjustments --- */
-@media (max-width: 768px) {
-    .page-header .container {
-        flex-direction: column;
-        text-align: center;
+   <style>
+    /* Enhanced Professional & Modern Styling */
+    :root {
+        --primary-color: #28a745;
+        --primary-dark: #1e7e34;
+        --secondary-color: #6c757d;
+        --accent-color: #28a745;
+        --danger-color: #dc3545;
+        --light-bg: #f8f9fa;
+        --dark-text: #343a40;
+        --border-color: #dee2e6;
+        --white: #ffffff;
+        --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        --transition: all 0.3s ease;
     }
-    .page-header nav {
-        margin-top: 15px;
-        width: 100%; /* Full width nav */
+
+    body {
+        font-family: 'Poppins', sans-serif;
+        margin: 0;
+        padding: 0;
+        background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
+        color: var(--dark-text);
+        line-height: 1.6;
+        min-height: 100vh;
         display: flex;
-        justify-content: center;
+        flex-direction: column;
+    }
+
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 20px;
+    }
+
+    /* Header Enhancements */
+    .page-header {
+        background-color: var(--white);
+        box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+        padding: 15px 0;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+    }
+
+    .page-header .container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
         flex-wrap: wrap;
     }
+
+    .page-header h1 {
+        margin: 0;
+        font-size: 1.8em;
+    }
+
+    .page-header h1 a {
+        text-decoration: none;
+        color: var(--primary-color);
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+    }
+
+    .page-header h1 a::before {
+        content: "🚚";
+        margin-right: 10px;
+        font-size: 1.5em;
+    }
+
+    .page-header nav {
+        margin-top: 5px;
+    }
+
     .page-header nav a {
-        margin: 5px 8px; /* Adjust spacing */
-        padding: 6px 12px;
-        font-size: 0.9em;
+        text-decoration: none;
+        color: var(--dark-text);
+        padding: 10px 15px;
+        margin-left: 10px;
+        font-weight: 600;
+        transition: var(--transition);
+        border-radius: 30px;
+        font-size: 0.95em;
+    }
+
+    .page-header nav a:hover {
+        color: var(--white);
+        background-color: var(--primary-color);
+    }
+
+    /* Authentication Page Enhancements */
+    .auth-page {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+        flex-grow: 1;
     }
 
     .auth-container {
-        padding: 30px 15px; /* Reduce overall padding on smaller screens */
+        flex-grow: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 40px 20px;
     }
 
     .auth-box {
-        padding: 30px 25px; /* Reduce box padding */
-        border-radius: 8px; /* Slightly smaller border-radius */
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08); /* Lighter shadow */
+        background-color: var(--white);
+        padding: 50px 45px;
+        border-radius: 15px;
+        box-shadow: var(--card-shadow);
+        width: 100%;
+        max-width: 500px;
+        text-align: center;
+        box-sizing: border-box;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .auth-box::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 5px;
+        background: linear-gradient(90deg, var(--primary-color), #20c997);
     }
 
     .auth-box h2 {
-        font-size: 1.8em; /* Smaller heading */
-        margin-bottom: 20px;
+        color: var(--primary-color);
+        margin-bottom: 15px;
+        font-size: 2.2em;
+        font-weight: 700;
+    }
+
+    .auth-box .fas {
+        margin-right: 8px;
+        color: var(--primary-color);
     }
 
     .auth-tagline {
-        font-size: 1em;
+        color: #6c757d;
+        margin-bottom: 35px;
+        font-size: 1.1em;
+        font-weight: 400;
+    }
+
+    /* Input Group Enhancements */
+    .input-group {
         margin-bottom: 25px;
+        text-align: left;
+        position: relative;
     }
 
     .input-group label {
-        font-size: 0.95em;
-        margin-bottom: 8px;
-    }
-
-    .input-group input {
-        padding: 12px 15px; /* Smaller input padding */
-        font-size: 0.95em;
-    }
-
-    .auth-btn {
-        padding: 12px;
+        display: block;
+        margin-bottom: 10px;
+        font-weight: 600;
+        color: var(--dark-text);
         font-size: 1em;
     }
 
-    .auth-message {
-        padding: 10px;
-        font-size: 0.85em;
-        margin-top: 15px;
+    .input-group input {
+        width: 100%;
+        padding: 16px 20px;
+        border: 2px solid var(--border-color);
+        border-radius: 10px;
+        font-size: 1em;
+        box-sizing: border-box;
+        transition: var(--transition);
+        background-color: #f8f9fa;
     }
 
-    .auth-footer-text {
-        font-size: 0.9em;
-        margin-top: 20px;
+    .input-group input:focus {
+        border-color: var(--primary-color);
+        outline: none;
+        background-color: var(--white);
+        box-shadow: 0 0 0 4px rgba(40, 167, 69, 0.1);
     }
-}
 
-@media (max-width: 480px) {
-    .page-header h1 {
-        font-size: 1.6em;
+    /* Password Toggle Enhancements */
+    .password-group {
+        position: relative;
     }
-    .page-header nav {
-        justify-content: space-around; /* Distribute links evenly */
+
+    .password-toggle-btn {
+        position: absolute;
+        right: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 1.2em;
+        color: var(--secondary-color);
+        transition: var(--transition);
+        padding: 5px;
+        border-radius: 5px;
     }
-    .page-header nav a {
-        margin: 5px; /* Even smaller margins */
-        padding: 5px 10px;
+
+    .password-toggle-btn:hover {
+        color: var(--primary-color);
+        background-color: rgba(40, 167, 69, 0.1);
     }
-    .auth-box {
-        padding: 25px 20px;
-    }
-    .auth-box h2 {
-        font-size: 1.6em;
-    }
-    .auth-tagline {
-        font-size: 0.95em;
-    }
-    .input-group input,
+
+    /* Button Enhancements */
     .auth-btn {
-        font-size: 0.9em;
-  
+        width: 100%;
+        padding: 16px;
+        font-size: 1.1em;
+        font-weight: 600;
+        border-radius: 10px;
+        margin-top: 10px;
+        background: linear-gradient(90deg, var(--primary-color), #20c997);
+        color: white;
+        border: none;
+        cursor: pointer;
+        transition: var(--transition);
+        box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
     }
-}
 
-/* --- Modal Styles --- */
-.modal {
-    display: none; /* Hidden by default */
-    position: fixed; /* Stay in place */
-    z-index: 1000; /* Sit on top */
-    left: 0;
-    top: 0;
-    width: 100%; /* Full width */
-    height: 100%; /* Full height */
-    overflow: auto; /* Enable scroll if needed */
-    background-color: rgba(0,0,0,0.6); /* Black w/ opacity */
-    justify-content: center; /* Center horizontally */
-    align-items: center; /* Center vertically */
-    padding-top: 50px; /* Offset from top */
-}
-
-.modal-content {
-    background-color: #fefefe;
-    margin: auto; /* Centers the box */
-    padding: 30px;
-    border: 1px solid #888;
-    width: 80%; /* Could be responsive */
-    max-width: 700px; /* Max width for larger screens */
-    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
-    animation-name: animatetop;
-    animation-duration: 0.4s;
-    border-radius: 8px;
-    position: relative;
-}
-
-/* Add animation (fade in from top) */
-@keyframes animatetop {
-    from {top: -300px; opacity: 0}
-    to {top: 0; opacity: 1}
-}
-
-.close-button {
-    color: #aaa;
-    float: right;
-    font-size: 28px;
-    font-weight: bold;
-    cursor: pointer;
-    position: absolute; /* Position relative to modal-content */
-    top: 10px;
-    right: 20px;
-}
-
-.close-button:hover,
-.close-button:focus {
-    color: black;
-    text-decoration: none;
-    cursor: pointer;
-}
-
-.modal-body p {
-    margin-bottom: 10px;
-    line-height: 1.5;
-}
-
-.modal-body strong {
-    color: #333;
-}
-
-.modal-footer {
-    padding-top: 20px;
-    text-align: right;
-    border-top: 1px solid #eee;
-    margin-top: 20px;
-}
-
-/* Responsive adjustments */
-@media screen and (max-width: 768px) {
-    .modal-content {
-        width: 95%;
-        padding: 20px;
+    .auth-btn:hover {
+        background: linear-gradient(90deg, var(--primary-dark), #1baa7f);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
     }
-}
 
-    </style>
+    .auth-btn:disabled {
+        background: linear-gradient(90deg, #a5d6b4, #9bd1c0);
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+
+    /* Message Enhancements */
+    .auth-message {
+        margin-top: 20px;
+        padding: 15px;
+        border-radius: 10px;
+        font-size: 0.95em;
+        text-align: center;
+        display: block;
+        line-height: 1.4;
+        transition: var(--transition);
+        font-weight: 500;
+    }
+
+    .auth-message:empty {
+        display: none;
+    }
+
+    .auth-message.error-message {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+
+    .auth-message.success-message {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .auth-message.info-message {
+        background-color: #d1ecf1;
+        color: #0c5460;
+        border: 1px solid #bee5eb;
+    }
+
+    /* Footer Text Enhancements */
+    .auth-footer-text {
+        margin-top: 25px;
+        font-size: 0.95em;
+        color: #555;
+    }
+
+    .auth-footer-text a {
+        color: var(--primary-color);
+        text-decoration: none;
+        font-weight: 600;
+        transition: var(--transition);
+        padding: 5px 10px;
+        border-radius: 5px;
+    }
+
+    .auth-footer-text a:hover {
+        text-decoration: underline;
+        color: var(--primary-dark);
+        background-color: rgba(40, 167, 69, 0.1);
+    }
+
+    /* Page Footer */
+    .page-footer {
+        background-color: var(--dark-text);
+        color: #fff;
+        text-align: center;
+        padding: 25px 0;
+        font-size: 0.95em;
+        margin-top: auto;
+    }
+
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+        .page-header .container {
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .page-header nav {
+            margin-top: 15px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .page-header nav a {
+            margin: 5px 8px;
+            padding: 8px 15px;
+            font-size: 0.9em;
+        }
+
+        .auth-container {
+            padding: 30px 15px;
+        }
+
+        .auth-box {
+            padding: 40px 30px;
+            border-radius: 12px;
+        }
+
+        .auth-box h2 {
+            font-size: 1.9em;
+            margin-bottom: 15px;
+        }
+
+        .auth-tagline {
+            font-size: 1em;
+            margin-bottom: 30px;
+        }
+
+        .input-group input {
+            padding: 14px 18px;
+            font-size: 0.95em;
+        }
+
+        .auth-btn {
+            padding: 14px;
+            font-size: 1.05em;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .page-header h1 {
+            font-size: 1.6em;
+        }
+
+        .page-header nav {
+            justify-content: space-around;
+        }
+
+        .page-header nav a {
+            margin: 5px;
+            padding: 6px 12px;
+            font-size: 0.85em;
+        }
+
+        .auth-box {
+            padding: 35px 25px;
+        }
+
+        .auth-box h2 {
+            font-size: 1.7em;
+        }
+
+        .auth-tagline {
+            font-size: 0.95em;
+        }
+
+        .input-group input,
+        .auth-btn {
+            font-size: 0.9em;
+        }
+    }
+
+    /* Animation for form elements */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .auth-box {
+        animation: fadeIn 0.6s ease-out;
+    }
+
+    .auth-box > *:nth-child(1) { animation-delay: 0.1s; }
+    .auth-box > *:nth-child(2) { animation-delay: 0.2s; }
+    .auth-box > *:nth-child(3) { animation-delay: 0.3s; }
+    .auth-box > *:nth-child(4) { animation-delay: 0.4s; }
+    .auth-box > *:nth-child(5) { animation-delay: 0.5s; }
+
+    [class*="auth-box"] > * {
+        opacity: 0;
+        animation: fadeIn 0.6s forwards;
+    }
+</style>
 <body class="auth-page">
 
-    <header class="page-header">
-        <div class="container">
-            <h1><a href="landing.html">FikaConnect</a></h1>
-            <nav>
-                <a href="signup.html">Register</a>
-                <a href="trackdeliveries.html">Track Delivery</a>
-                <a href="about.html">About Us</a>
-            </nav>
         </div>
     </header>
 
@@ -475,33 +446,11 @@ body {
 
             <p class="auth-footer-text">Don't have an account? <a href="signup.html">Sign up here</a></p>
             <p class="auth-footer-text"><a href="#" id="forgotPasswordLink">Forgot Password?</a></p>
+            <p> Would you love to Know  <a href="about.html">About Us ? </a></p>
         </div>
 
 
-        <div id="bookingDetailsModal" class="modal">
-    <div class="modal-content">
-        <span class="close-button">&times;</span>
-        <h2>Booking Details <span id="modalBookingId"></span></h2>
-        <div class="modal-body">
-            <p><strong>Customer:</strong> <span id="modalCustomerName"></span> (<span id="modalCustomerId"></span>)</p>
-            <p><strong>Driver:</strong> <span id="modalDriverName"></span> (<span id="modalDriverId"></span>)</p>
-            <p><strong>Status:</strong> <span id="modalBookingStatus"></span></p>
-            <p><strong>Fare:</strong> <span id="modalBookingFare"></span></p>
-            <p><strong>Vehicle Type:</strong> <span id="modalVehicleType"></span></p>
-            <p><strong>Pickup Location:</strong> <span id="modalPickupLocation"></span></p>
-            <p><strong>Dropoff Location:</strong> <span id="modalDropoffLocation"></span></p>
-            <p><strong>Pickup Date:</strong> <span id="modalPickupDate"></span></p>
-            <p><strong>Pickup Time:</strong> <span id="modalPickupTime"></span></p>
-            <p><strong>Item Description:</strong> <span id="modalItemDescription"></span></p>
-            <p><strong>Weight:</strong> <span id="modalItemWeight"></span></p>
-            <p><strong>Dimensions:</strong> <span id="modalItemDimensions"></span></p>
-            <p><strong>Payment Method:</strong> <span id="modalPaymentMethod"></span></p>
-            </div>
-        <div class="modal-footer">
-            <button class="btn btn-secondary" id="closeModalButton">Close</button>
-        </div>
-    </div>
-</div>
+       
     </main>
 
     <footer class="page-footer">
@@ -513,7 +462,7 @@ body {
     <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
-    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
     // Your Firebase Configuration (replace with your actual config)
     const firebaseConfig = {
@@ -540,47 +489,87 @@ body {
     const togglePasswordBtn = document.getElementById('togglePassword'); // New: Password toggle button
 
     // --- Helper function to handle user redirection based on role ---
-    async function handleUserRoleAndRedirect(user) {
-        if (!user) {
-            return;
-        }
-
-        const adminDocRef = doc(db, "admins", user.uid);
-        const adminDocSnap = await getDoc(adminDocRef);
-
-        if (adminDocSnap.exists() && adminDocSnap.data().isAdmin === true) {
-            console.log("Admin user logged in. Redirecting to admin dashboard.");
-            window.location.href = 'admin-dashboard.html';
-            return;
-        }
-
-        const userDocRef = doc(db, "users", user.uid);
-        const userDocSnap = await getDoc(userDocRef);
-
-        if (userDocSnap.exists()) {
-            const userData = userDocSnap.data();
-            if (userData.isDriver) {
-                console.log("Driver user logged in. Redirecting to driver dashboard.");
-                localStorage.setItem('currentDriverId', user.uid);
-                window.location.href = 'driver-dashboard.html';
-                return;
-            } else {
-                console.log("Sender/Customer logged in. Redirecting to book and track page.");
-                window.location.href = 'sender-dasboard.html';
-                return;
-            }
-        } else {
-            console.warn("User profile incomplete or not found in 'users' collection for UID:", user.uid);
-            loginMessage.textContent = 'User profile incomplete. Please complete your registration or contact support.';
-            loginMessage.className = 'auth-message error-message';
-            await auth.signOut();
-            return;
-        }
+   // In the handleUserRoleAndRedirect function in login.html
+async function handleUserRoleAndRedirect(user) {
+    if (!user) {
+        return;
     }
 
-    // --- Check auth state on page load ---
+    const adminDocRef = doc(db, "admins", user.uid);
+    const adminDocSnap = await getDoc(adminDocRef);
+
+    if (adminDocSnap.exists() && adminDocSnap.data().isAdmin === true) {
+        console.log("Admin user logged in. Redirecting to admin dashboard.");
+        window.location.href = 'admin-dashboard.html';
+        return;
+    }
+
+    const userDocRef = doc(db, "users", user.uid);
+    const userDocSnap = await getDoc(userDocRef);
+
+    if (userDocSnap.exists()) {
+        const userData = userDocSnap.data();
+        if (userData.isDriver) {
+            console.log("Driver user logged in. Redirecting to driver dashboard.");
+            localStorage.setItem('currentDriverId', user.uid);
+            window.location.href = 'driver-dashboard.html';
+            return;
+        } else {
+            console.log("Sender/Customer logged in. Redirecting to sender dashboard.");
+            window.location.href = 'sender-dasboard.html';
+            return;
+        }
+    } else {
+        console.warn("User profile incomplete or not found in 'users' collection for UID:", user.uid);
+        // Create a basic user profile with default sender role
+        try {
+            await setDoc(doc(db, "users", user.uid), {
+                email: user.email,
+                isDriver: false, // Default to sender
+                createdAt: serverTimestamp()
+            });
+            window.location.href = 'sender-dasboard.html';
+        } catch (error) {
+            console.error("Error creating user profile:", error);
+            loginMessage.textContent = 'Error creating user profile. Please try again or contact support.';
+            loginMessage.className = 'auth-message error-message';
+            await auth.signOut();
+        }
+    }
+}
+
+    // --- Check auth state on page load (only redirect if already logged in with complete profile) ---
     onAuthStateChanged(auth, async (user) => {
-        await handleUserRoleAndRedirect(user);
+        if (user) {
+            // Check if user has a complete profile before redirecting
+            try {
+                const userDocRef = doc(db, "users", user.uid);
+                const userDocSnap = await getDoc(userDocRef);
+                
+                if (userDocSnap.exists()) {
+                    const userData = userDocSnap.data();
+                    // Only redirect if user has complete profile data
+                    if (userData.name && userData.email) {
+                        await handleUserRoleAndRedirect(user);
+                    } else {
+                        console.log("User profile incomplete, staying on login page.");
+                    }
+                } else {
+                    // Check if user is admin
+                    const adminDocRef = doc(db, "admins", user.uid);
+                    const adminDocSnap = await getDoc(adminDocRef);
+                    
+                    if (adminDocSnap.exists() && adminDocSnap.data().isAdmin === true) {
+                        window.location.href = 'admin-dashboard.html';
+                    } else {
+                        console.log("No user profile found, staying on login page.");
+                    }
+                }
+            } catch (error) {
+                console.error("Error checking user profile:", error);
+                // Stay on login page on error
+            }
+        }
     });
 
     // --- Handle Login Form Submission ---
